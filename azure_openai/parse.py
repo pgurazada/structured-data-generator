@@ -32,13 +32,13 @@ examples_data = load_dataset("pgurazada1/amazon_india_products", split="train")
 new_data_to_index = (
     examples_data.to_pandas()
                  .sample(54)
-                 .loc[:, ['Product Title', 'Product Description', 'Brand', 'Category']]
+                 .loc[:, ['Product Title', 'Product Description', 'Price']]
 )
 
 examples_df = (
     examples_data.to_pandas()
                  .sample(16)
-                 .loc[:, ['Product Title', 'Product Description', 'Brand', 'Category']]
+                 .loc[:, ['Product Title', 'Brand', 'Category']]
 )
 
 llm = os.environ["AZURE_DEPLOYMENT_NAME"]
@@ -62,7 +62,7 @@ You will be presented with a product title and you are tasked to extract the fol
 
 {{
 "Brand": "Brand mentioned in the title",
-"Category": "The category to which the product belongs to"
+"Category": "The category to which the product belongs"
 }}
 
 The category field can only be one of: Skin Care, Bath & Shower, Hair Care, Fragrance or Grocery & Gourmet Foods.
@@ -79,9 +79,8 @@ few_shot_prompt = [
 for index, example_row in examples_df.iterrows():
 
     example_title = example_row.iloc[0]
-    example_description = example_row.iloc[1]
-    example_brand = example_row.iloc[2]
-    example_category = example_row.iloc[3]
+    example_brand = example_row.iloc[1]
+    example_category = example_row.iloc[2]
 
     example_response = {"Brand": example_brand, "Category": example_category}
 
@@ -115,20 +114,24 @@ def extract_product_information(few_shot_prompt: list, input: str):
 new_records = []
 
 for index, row in new_data_to_index.iterrows():
-    _title = example_row.iloc[0]
-    _description = example_row.iloc[1]
+    _title = row.iloc[0]
+    _description = row.iloc[1]
+    _price = row.iloc[2]
 
     try:
         extracted_fields = extract_product_information(few_shot_prompt, _title)
         extracted_fields_dict = json.loads(extracted_fields.replace("'", '"'))
         extracted_fields_dict['Product_Title'] = _title.strip()
         extracted_fields_dict['Product_Description'] = _description.strip()
+        extracted_fields_dict['Price'] = _price
         new_records.append(extracted_fields_dict)
     except Exception as e:
         print(e)
         continue
 
 # Once the extraction is correctly done, we insert these as records into MongoDB
+# Here we are only checking for basic failures. More robustness checks such as field
+# sanity checks should be conducted before database writes
 assert len(new_records) == 54
 
 amazon_collection.insert_many(new_records)
