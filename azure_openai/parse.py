@@ -35,11 +35,15 @@ new_data_to_index = (
                  .loc[:, ['Product Title', 'Product Description', 'Price']]
 )
 
+new_data_to_index.sample(5)
+
 examples_df = (
     examples_data.to_pandas()
                  .sample(16)
                  .loc[:, ['Product Title', 'Brand', 'Category']]
 )
+
+examples_df.sample(5)
 
 llm = os.environ["AZURE_DEPLOYMENT_NAME"]
 
@@ -98,6 +102,7 @@ for index, example_row in examples_df.iterrows():
         }
     )
 
+few_shot_prompt
 
 def extract_product_information(few_shot_prompt: list, input: str):
 
@@ -134,4 +139,8 @@ for index, row in new_data_to_index.iterrows():
 # sanity checks should be conducted before database writes
 assert len(new_records) == 54
 
+len(new_records)
+
 amazon_collection.insert_many(new_records)
+
+new_records[0]
